@@ -118,6 +118,7 @@ const nightTimeChat = {};
 const vampireNightTimeChat = {};
 const deadPlayerChat = {};
 const nightTimeAction = {};
+const dayTimeAction = {};
 
 io.on("connection", (socket) => {
   // 當用戶加入房間
@@ -191,6 +192,29 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("allDayChat", dayTimeChat[roomId]);
   });
 
+  // handle day action
+  socket.on("dayAction", ({ days, position, roomId, target, action }) => {
+    if (!dayTimeAction[roomId]) {
+      dayTimeAction[roomId] = [];
+    }
+
+    dayTimeAction[roomId].push({
+      owner: position,
+      target: target,
+      action: action,
+    });
+
+    dayTimeAction[roomId] = dayTimeAction[roomId].filter(
+      (obj) => obj.target !== null
+    );
+
+    dayTimeAction[roomId] = dayTimeAction[roomId].filter(
+      (obj) => obj.action !== undefined
+    );
+
+    io.to(roomId).emit("allDayAction", dayTimeAction[roomId]);
+  });
+
   socket.on("resetNightAction", ({ roomId }) => {
     if (nightTimeAction[roomId]) {
       nightTimeAction[roomId] = [];
@@ -231,6 +255,8 @@ io.on("connection", (socket) => {
   socket.on("deadPlayerChat", ({ name, message, roomId }) => {
     socket.join(roomId);
 
+    console.log(message);
+
     if (!deadPlayerChat[roomId]) {
       deadPlayerChat[roomId] = [];
     }
@@ -241,7 +267,8 @@ io.on("connection", (socket) => {
         message: message,
       });
     }
-    io.to(roomId).emit("alldeadPlayerChat", deadPlayerChat[roomId]);
+
+    io.to(roomId).emit("allDeadPlayerChat", deadPlayerChat[roomId]);
   });
 
   socket.on("nightAction", ({ nights, position, roomId, target, action }) => {
