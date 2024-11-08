@@ -278,9 +278,6 @@ io.on("connection", (socket) => {
       return order[a.action] - order[b.action];
     });
 
-    console.log(nightTimeAction);
-    console.log(sortedNightActions);
-
     io.to(roomId).emit("allNightAction", sortedNightActions);
   });
 
