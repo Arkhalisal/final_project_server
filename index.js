@@ -119,6 +119,13 @@ const vampireNightTimeChat = {};
 const deadPlayerChat = {};
 const nightTimeAction = {};
 const dayTimeAction = {};
+const votes = {
+  // eokgjoje: {
+  //  0 eric: 2, 0
+  //  1 lam: 2, 0
+  //  2 lychee: 2, 3  target
+  // },
+};
 
 io.on("connection", (socket) => {
   // 當用戶加入房間
@@ -178,7 +185,7 @@ io.on("connection", (socket) => {
   });
 
   // handle daytime
-  socket.on("dayChat", ({ name, message, roomId }) => {
+  socket.on("dayChat", ({ name, message, roomId, repeat }) => {
     socket.join(roomId);
 
     if (!dayTimeChat[roomId]) {
@@ -187,6 +194,16 @@ io.on("connection", (socket) => {
 
     if (message) {
       dayTimeChat[roomId].push({ name: name, message: message });
+    }
+
+    if (repeat && repeat === "no") {
+      dayTimeChat[roomId].reduce((acc, current) => {
+        const x = acc.find((item) => item.message === current.message);
+        if (!x) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
     }
 
     io.to(roomId).emit("allDayChat", dayTimeChat[roomId]);
@@ -255,8 +272,6 @@ io.on("connection", (socket) => {
   socket.on("deadPlayerChat", ({ name, message, roomId }) => {
     socket.join(roomId);
 
-    console.log(message);
-
     if (!deadPlayerChat[roomId]) {
       deadPlayerChat[roomId] = [];
     }
@@ -270,43 +285,76 @@ io.on("connection", (socket) => {
 
     io.to(roomId).emit("allDeadPlayerChat", deadPlayerChat[roomId]);
   });
-
-  socket.on("nightAction", ({ nights, position, roomId, target, action }) => {
-    if (!nightTimeAction[roomId]) {
-      nightTimeAction[roomId] = [];
+  //handle vote
+  socket.on("submitVote", ({ id, target, roomId }) => {
+    if (!votes[roomId]) {
+      votes[roomId] = {};
     }
 
-    nightTimeAction[roomId].push({
-      owner: position,
-      target: target,
-      action: action,
-    });
+    // think about when the key not exist first
+    if (!votes[roomId][id]) votes[roomId][id] = target;
 
-    nightTimeAction[roomId] = nightTimeAction[roomId].filter(
-      (obj) => obj.target !== null
-    );
+    // when the key exist replace the old value with new value
+    votes[roomId][id] = target;
 
-    nightTimeAction[roomId] = nightTimeAction[roomId].filter(
-      (obj) => obj.action !== undefined
-    );
-
-    const sortedNightActions = nightTimeAction[roomId].sort((a, b) => {
-      const order = {
-        convert: 1,
-        kill: 1,
-        vampireKill: 1,
-        lookout: 2,
-        scam: 2,
-        remember: 2,
-        detect: 3,
-        protect: 4,
-      };
-
-      return order[a.action] - order[b.action];
-    });
-
-    io.to(roomId).emit("allNightAction", sortedNightActions);
+    io.to(roomId).emit("updateVotes", votes[roomId]);
   });
+
+  //handle clear vote
+  socket.on("clearVotes", (roomId) => {
+    votes[roomId] = {};
+  });
+
+  //handle nightAction
+  socket.on(
+    "nightAction",
+    ({ nights, position, roomId, target, action, twistedTarget }) => {
+      if (!nightTimeAction[roomId]) {
+        nightTimeAction[roomId] = [];
+      }
+
+      if (twistedTarget) {
+        nightTimeAction[roomId].push({
+          owner: position,
+          target: target,
+          action: action,
+          twistedTarget: twistedTarget,
+        });
+      } else {
+        nightTimeAction[roomId].push({
+          owner: position,
+          target: target,
+          action: action,
+        });
+      }
+
+      nightTimeAction[roomId] = nightTimeAction[roomId].filter(
+        (obj) => obj.target !== null
+      );
+
+      nightTimeAction[roomId] = nightTimeAction[roomId].filter(
+        (obj) => obj.action !== undefined
+      );
+
+      const sortedNightActions = nightTimeAction[roomId].sort((a, b) => {
+        const order = {
+          convert: 1,
+          kill: 1,
+          destiny: 1,
+          vampireKill: 1,
+          lookout: 2,
+          scam: 2,
+          remember: 2,
+          detect: 3,
+          protect: 4,
+        };
+
+        return order[a.action] - order[b.action];
+      });
+
+      io.to(roomId).emit("allNightAction", sortedNightActions);
+    }
+  );
 
   // 當用戶斷開連接
   socket.on("disconnect", async () => {
