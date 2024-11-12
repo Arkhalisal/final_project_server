@@ -232,6 +232,12 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("allDayAction", dayTimeAction[roomId]);
   });
 
+  socket.on("resetDayAction", ({ roomId }) => {
+    if (dayTimeAction[roomId]) {
+      dayTimeAction[roomId] = [];
+    }
+  });
+
   socket.on("resetNightAction", ({ roomId }) => {
     if (nightTimeAction[roomId]) {
       nightTimeAction[roomId] = [];
@@ -351,6 +357,8 @@ io.on("connection", (socket) => {
 
         return order[a.action] - order[b.action];
       });
+
+      console.log(sortedNightActions);
 
       io.to(roomId).emit("allNightAction", sortedNightActions);
     }
