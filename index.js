@@ -105,7 +105,7 @@ app.post("/checkToken", (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://final-project-client-zeta.vercel.app",
+    origin: "https://final-project-client-5d7s.onrender.com",
     methods: ["GET", "POST"],
   },
 });
