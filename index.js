@@ -12,7 +12,6 @@ dotenv.config();
 
 // middle ware
 const app = express();
-const port = 3000;
 app.use(cors());
 app.use(bodyParser.json()); // parse application/json
 app.use(bodyParser.urlencoded({ extended: true })); // parse application/x-www-form-urlencoded
@@ -119,13 +118,7 @@ const vampireNightTimeChat = {};
 const deadPlayerChat = {};
 const nightTimeAction = {};
 const dayTimeAction = {};
-const votes = {
-  // eokgjoje: {
-  //  0 eric: 2, 0
-  //  1 lam: 2, 0
-  //  2 lychee: 2, 3  target
-  // },
-};
+const votes = {};
 
 io.on("connection", (socket) => {
   // 當用戶加入房間
@@ -389,6 +382,6 @@ io.on("connection", (socket) => {
 
 // other game
 
-server.listen(port, () => {
-  console.log(`SERVER IS RUNNING ON ${port}`);
+server.listen(process.env.PORT, () => {
+  console.log(`SERVER IS RUNNING ON ${process.env.PORT}`);
 });
