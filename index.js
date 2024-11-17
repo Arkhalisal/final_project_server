@@ -105,13 +105,14 @@ app.post("/checkToken", (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://final-project-client-5d7s.onrender.com",
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
 
 const roomPlayers = {}; // 用於存儲房間內的玩家
 const roomIdList = [];
+const startedGameId = [];
 const dayTimeChat = {};
 const nightTimeChat = {};
 const vampireNightTimeChat = {};
@@ -124,8 +125,13 @@ io.on("connection", (socket) => {
   // 當用戶加入房間
   // handle player and room
   socket.on("joinRoom", ({ roomId }) => {
-    socket.join(roomId); // 加入房間
     if (!roomIdList.includes(roomId)) roomIdList.push(roomId);
+    if (!startedGameId.includes(roomId)) {
+      socket.join(roomId);
+      socket.emit("gameStarted", { gameJoin: true, roomId });
+    } else {
+      socket.emit("gameStarted", { gameJoin: false, roomId });
+    }
   });
 
   socket.on("getPlayer", async ({ roomId, playerName, email }) => {
@@ -163,6 +169,7 @@ io.on("connection", (socket) => {
   // io.emit() to all people
   // handle game start
   socket.on("gameStart", ({ roomId, start }) => {
+    startedGameId.push(roomId);
     io.to(roomId).emit("returnGameStart", start);
   });
 
@@ -294,7 +301,15 @@ io.on("connection", (socket) => {
     if (!votes[roomId][id]) votes[roomId][id] = target;
 
     // when the key exist replace the old value with new value
-    votes[roomId][id] = target;
+    if (votes[roomId][id]) {
+      if (target !== null) {
+        votes[roomId][id] = target;
+      } else {
+        votes[roomId][id] = null;
+      }
+    }
+
+    console.log(votes[roomId]);
 
     io.to(roomId).emit("updateVotes", votes[roomId]);
   });
