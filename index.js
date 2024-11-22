@@ -44,12 +44,9 @@ connectToDB();
 app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    if (!username || !email || !password)
-      return res.json({ comment: "please enter the correct infomation" });
+    if (!username || !email || !password) return res.json({ comment: "please enter the correct infomation" });
     // check if existing email exist
-    const existingUser = await db
-      .collection("user_info")
-      .findOne({ email: email });
+    const existingUser = await db.collection("user_info").findOne({ email: email });
     if (existingUser) return res.json({ comment: "email already exist" });
     // create a encode password
     if (password.length < 8)
@@ -77,9 +74,7 @@ app.post("/login", async (req, res) => {
     if (!user) return res.json({ comment: "No email exist" });
     // create access token and verify password
     const accessToken = jwt.sign(user.email, process.env.ACCESS_TOKEN_SECRET);
-    await db
-      .collection("user_info")
-      .replaceOne({ email: email }, { ...user, accessToken: accessToken });
+    await db.collection("user_info").replaceOne({ email: email }, { ...user, accessToken: accessToken });
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (passwordMatch) {
       return res.json({ assessToken: accessToken, ...user });
@@ -124,6 +119,10 @@ const dayTimeAction = {};
 const votes = {};
 
 io.on("connection", (socket) => {
+  console.log(socket.id);
+  socket.on("testDeploy", (data) => {
+    socket.emit("testBack", data);
+  });
   // 當用戶加入房間
   // handle player and room
   socket.on("joinRoom", ({ roomId }) => {
@@ -227,13 +226,9 @@ io.on("connection", (socket) => {
       action: action,
     });
 
-    dayTimeAction[roomId] = dayTimeAction[roomId].filter(
-      (obj) => obj.target !== null
-    );
+    dayTimeAction[roomId] = dayTimeAction[roomId].filter((obj) => obj.target !== null);
 
-    dayTimeAction[roomId] = dayTimeAction[roomId].filter(
-      (obj) => obj.action !== undefined
-    );
+    dayTimeAction[roomId] = dayTimeAction[roomId].filter((obj) => obj.action !== undefined);
 
     io.to(roomId).emit("allDayAction", dayTimeAction[roomId]);
   });
@@ -324,55 +319,48 @@ io.on("connection", (socket) => {
   });
 
   //handle nightAction
-  socket.on(
-    "nightAction",
-    ({ nights, position, roomId, target, action, twistedTarget }) => {
-      if (!nightTimeAction[roomId]) {
-        nightTimeAction[roomId] = [];
-      }
-
-      if (twistedTarget) {
-        nightTimeAction[roomId].push({
-          owner: position,
-          target: target,
-          action: action,
-          twistedTarget: twistedTarget,
-        });
-      } else {
-        nightTimeAction[roomId].push({
-          owner: position,
-          target: target,
-          action: action,
-        });
-      }
-
-      nightTimeAction[roomId] = nightTimeAction[roomId].filter(
-        (obj) => obj.target !== null
-      );
-
-      nightTimeAction[roomId] = nightTimeAction[roomId].filter(
-        (obj) => obj.action !== undefined
-      );
-
-      const sortedNightActions = nightTimeAction[roomId].sort((a, b) => {
-        const order = {
-          convert: 1,
-          kill: 1,
-          destiny: 1,
-          vampireKill: 1,
-          lookout: 2,
-          scam: 2,
-          remember: 2,
-          detect: 3,
-          protect: 4,
-        };
-
-        return order[a.action] - order[b.action];
-      });
-
-      io.to(roomId).emit("allNightAction", sortedNightActions);
+  socket.on("nightAction", ({ nights, position, roomId, target, action, twistedTarget }) => {
+    if (!nightTimeAction[roomId]) {
+      nightTimeAction[roomId] = [];
     }
-  );
+
+    if (twistedTarget) {
+      nightTimeAction[roomId].push({
+        owner: position,
+        target: target,
+        action: action,
+        twistedTarget: twistedTarget,
+      });
+    } else {
+      nightTimeAction[roomId].push({
+        owner: position,
+        target: target,
+        action: action,
+      });
+    }
+
+    nightTimeAction[roomId] = nightTimeAction[roomId].filter((obj) => obj.target !== null);
+
+    nightTimeAction[roomId] = nightTimeAction[roomId].filter((obj) => obj.action !== undefined);
+
+    const sortedNightActions = nightTimeAction[roomId].sort((a, b) => {
+      const order = {
+        convert: 1,
+        kill: 1,
+        destiny: 1,
+        vampireKill: 1,
+        lookout: 2,
+        scam: 2,
+        remember: 2,
+        detect: 3,
+        protect: 4,
+      };
+
+      return order[a.action] - order[b.action];
+    });
+
+    io.to(roomId).emit("allNightAction", sortedNightActions);
+  });
 
   // 當用戶斷開連接
   socket.on("disconnect", async () => {
