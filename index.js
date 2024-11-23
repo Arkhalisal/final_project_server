@@ -126,7 +126,9 @@ io.on("connection", (socket) => {
   // 當用戶加入房間
   // handle player and room
   socket.on("joinRoom", ({ roomId }) => {
+    console.log(roomId);
     if (!roomIdList.includes(roomId)) roomIdList.push(roomId);
+    console.log(roomIdList);
     if (!startedGameId.includes(roomId)) {
       socket.join(roomId);
       socket.emit("gameStarted", { gameJoin: true, roomId });
